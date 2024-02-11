@@ -2,7 +2,7 @@
 
 namespace DashcamVideoArchive.Viofo.Xml
 {
-    public class File
+    public class FileDetails
     {
         [XmlElement("NAME")]
         public string? Name { get; set; }
@@ -17,7 +17,7 @@ namespace DashcamVideoArchive.Viofo.Xml
         public long TimeCode { get; set; }
 
         [XmlElement("TIME")]
-        public string? Time { get; set; }
+        public required string Time { get; set; }
 
         [XmlElement("ATTR")]
         public int Attribute { get; set; }

@@ -1,10 +1,10 @@
-﻿using System.Xml.Serialization;
+﻿using DashcamVideoArchive.Core;
 using DashcamVideoArchive.Viofo.Xml;
-using File = DashcamVideoArchive.Viofo.Xml.File;
+using System.Xml.Serialization;
 
 namespace DashcamVideoArchive.Viofo
 {
-    public class ViofoASeriesDashcam
+    public class ViofoASeriesDashcam : IDashcam
     {
         private readonly HttpClient _httpClient;
 
@@ -26,38 +26,28 @@ namespace DashcamVideoArchive.Viofo
             }
         }
 
-        public async Task PrintFilesAsync()
-        {
-            var files = await GetFilesAsync();
-
-            foreach (var file in files)
-            {
-                Console.WriteLine(file.Name);
-                Console.WriteLine($" - {file.FilePath}");
-                Console.WriteLine($" - {file.Size}");
-                Console.WriteLine($" - {file.Time}");
-            }
-        }
-
-        private async Task<IEnumerable<File>> GetFilesAsync()
+        public async Task<IEnumerable<FootageVideoFile>> GetFilesAsync()
         {
             var response = await _httpClient.SendCommandAsync(CommandCodes.GetFiles);
 
             if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<File>();
+                return Enumerable.Empty<FootageVideoFile>();
 
             string xml = await response.Content.ReadAsStringAsync();
 
             var serializer = new XmlSerializer(typeof(FileList));
 
-            using (TextReader reader = new StringReader(xml))
-            {
-                var result = serializer.Deserialize(reader) as FileList;
-                if (result is null)
-                    return Enumerable.Empty<File>();
+            var result = serializer.Deserialize<FileList>(xml);
+            if (result is null)
+                return Enumerable.Empty<FootageVideoFile>();
 
-                return result.AllFiles.Select(f => f.File);
-            }
+            return result.AllFiles.Select(f => f.File).Select(f => new FootageVideoFile()
+            {
+                Name = f.Name ?? throw new NullReferenceException("Name is required."),
+                Path = f.FilePath ?? throw new NullReferenceException("FilePath is required."),
+                Time = DateTime.Parse(f.Time),
+                Size = f.Size
+            });
         }
     }
 }

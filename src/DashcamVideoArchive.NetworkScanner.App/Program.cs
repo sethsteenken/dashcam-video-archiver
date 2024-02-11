@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using DashcamVideoArchive.Core;
 using DashcamVideoArchive.Viofo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,7 @@ var host = Host.CreateDefaultBuilder(args)
             httpClient.BaseAddress = new Uri("https://dashcam.steenkenparrett.house");
         });
 
-        services.AddTransient<ViofoASeriesDashcam>(serviceProvider =>
+        services.AddTransient<IDashcam, ViofoASeriesDashcam>(serviceProvider =>
         {
             return new ViofoASeriesDashcam(
                 serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("viofo"));
@@ -22,11 +23,19 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
-var dashcam = host.Services.GetRequiredService<ViofoASeriesDashcam>();
+var dashcam = host.Services.GetRequiredService<IDashcam>();
 
 if (await dashcam.IsAvailableAsync())
 {
-    await dashcam.PrintFilesAsync();
+    var files = await dashcam.GetFilesAsync();
+
+    foreach (var file in files)
+    {
+        Console.WriteLine(file.Name);
+        Console.WriteLine($" - {file.Path}");
+        Console.WriteLine($" - {file.Size}");
+        Console.WriteLine($" - {file.Time}");
+    }
 }
 else
 {

@@ -3,6 +3,6 @@
     public interface IDashcam
     {
         Task<bool> IsAvailableAsync();
-        Task StopRecordingAsync();
+        Task<IEnumerable<FootageVideoFile>> GetFilesAsync();
     }
 }

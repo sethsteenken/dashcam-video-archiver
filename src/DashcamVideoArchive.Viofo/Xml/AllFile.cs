@@ -5,6 +5,6 @@ namespace DashcamVideoArchive.Viofo.Xml
     public class AllFile
     {
         [XmlElement("File")]
-        public required File File { get; set; }
+        public required FileDetails File { get; set; }
     }
 }
