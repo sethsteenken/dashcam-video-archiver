@@ -12,7 +12,10 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services.AddHttpClient("viofo", (serviceProvider, httpClient) =>
         {
-            httpClient.BaseAddress = new Uri("https://dashcam.steenkenparrett.house");
+            var endpoint = serviceProvider.GetRequiredService<IConfiguration>()["DASHCAM_ENDPOINT"]
+                ?? throw new InvalidOperationException("Missing DASHCAM_ENDPOINT value.");
+
+            httpClient.BaseAddress = new Uri(endpoint);
         });
 
         services.AddTransient<IDashcam, ViofoASeriesDashcam>(serviceProvider =>
