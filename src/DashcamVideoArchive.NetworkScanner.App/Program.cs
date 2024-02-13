@@ -7,6 +7,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 
+#if DEBUG
+Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
+#endif
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
@@ -27,23 +31,36 @@ var host = Host.CreateDefaultBuilder(args)
     .Build();
 
 var dashcam = host.Services.GetRequiredService<IDashcam>();
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
-if (await dashcam.IsAvailableAsync())
+try
 {
-    var files = await dashcam.GetFilesAsync();
-
-    foreach (var file in files)
+    if (await dashcam.IsAvailableAsync())
     {
-        Console.WriteLine(file.Name);
-        Console.WriteLine($" - {file.Path}");
-        Console.WriteLine($" - {file.Size}");
-        Console.WriteLine($" - {file.Time}");
+        var files = await dashcam.GetFilesAsync();
+
+        foreach (var file in files)
+        {
+            Console.WriteLine(file.Name);
+            Console.WriteLine($" - {file.Path}");
+            Console.WriteLine($" - {file.Size}");
+            Console.WriteLine($" - {file.Time}");
+        }
+    }
+    else
+    {
+        logger.LogInformation("Dashcam is not found.");
     }
 }
-else
+catch (Exception ex)
 {
-    Console.WriteLine("Dashcam is not available");
+    logger.LogError(ex, "An error occurred while scanning the dashcam.");
+}
+finally
+{
+#if DEBUG
+    Console.WriteLine("Press any key to exit...");
+    Console.ReadKey();
+#endif
 }
 
-Console.WriteLine("Press any key to exit...");
-Console.ReadKey();
