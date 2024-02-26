@@ -1,5 +1,6 @@
 ﻿using DashcamVideoArchive.Core;
 using DashcamVideoArchive.Viofo.Xml;
+using Microsoft.Extensions.Logging;
 using System.Xml.Serialization;
 
 namespace DashcamVideoArchive.Viofo
@@ -7,10 +8,14 @@ namespace DashcamVideoArchive.Viofo
     public class ViofoASeriesDashcam : IDashcam
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<ViofoASeriesDashcam> _logger;
 
-        public ViofoASeriesDashcam(HttpClient httpClient)
+        public ViofoASeriesDashcam(
+            HttpClient httpClient, 
+            ILogger<ViofoASeriesDashcam> logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         public async Task<bool> IsAvailableAsync()
@@ -20,8 +25,9 @@ namespace DashcamVideoArchive.Viofo
                 var response = await _httpClient.SendCommandAsync(CommandCodes.Heartbeat);
                 return response.IsSuccessStatusCode;
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException hrex)
             {
+                _logger.LogDebug(hrex, "An error occurred while checking dashcam heartbeat.");
                 return false;
             }
         }
