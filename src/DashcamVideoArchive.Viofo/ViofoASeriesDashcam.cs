@@ -78,9 +78,8 @@ namespace DashcamVideoArchive.Viofo
             return Path.GetFullPath(path).Substring(Path.GetPathRoot(path)?.Length ?? 0).Replace("\\", "/");
         }
 
-        public async ValueTask DisposeAsync()
+        public async Task ShutdownAsync()
         {
-            _logger.LogInformation("Forcing dashcam power off...");
             var response = await _httpClient.SendCommandAsync(CommandCodes.ForcePowerOff);
             response.EnsureSuccessStatusCode();
         }

@@ -1,7 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
-using DashcamVideoArchive.Core;
+﻿using DashcamVideoArchive.Core;
 using DashcamVideoArchive.Viofo;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -28,68 +26,22 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((hostContext, services) =>
     {
-        services.ConfigureHttpClientDefaults(builder =>
-        {
-            builder.ConfigureHttpClient((serviceProvider, httpClient) =>
-            {
-                var endpoint = serviceProvider.GetRequiredService<IConfiguration>()["DASHCAM_ENDPOINT"]
-                ?? throw new InvalidOperationException("Missing DASHCAM_ENDPOINT value.");
-
-                httpClient.BaseAddress = new Uri(endpoint);
-            });
-        });
-
+        services.AddDefaultDashcamServices();
         services.AddTransient<IDashcam, ViofoASeriesDashcam>();
-        services.AddTransient<IFileDownloader, FileDownloader>();
     })
     .Build();
-
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
 try
 {
-    await using var dashcam = host.Services.GetRequiredService<IDashcam>();
-
-    logger.LogInformation("Scanning for dashcam...");
-
-    if (await dashcam.IsAvailableAsync())
-    {
-        logger.LogInformation("Dashcam found. Requesting latest video files...");
-
-        var files = await dashcam.GetFilesAsync();
-
-        if (files.Count == 0)
-        {
-            logger.LogInformation("No files found.");
-            return 0;
-        }
-
-        logger.LogInformation($"Downloading files ({files.Count})...");
-
-        var cancellationTokenSource = new CancellationTokenSource();
-        var downloader = host.Services.GetRequiredService<IFileDownloader>();
-
-        for (int i = 0; i < files.Count; i++)
-        {
-            var file = files[i];
-            logger.LogInformation($"Downloading ({i + 1}/{files.Count}) {file.Path}...");
-            var downloadedPath = await downloader.DownloadAsync(file.Path, cancellationTokenSource.Token);
-            logger.LogInformation($"Downloaded file to {downloadedPath}.");
-
-            logger.LogInformation($"Deleting {file.Path}...");
-            await dashcam.DeleteFileAsync(file.Path);
-            logger.LogInformation($"Deleted {file.Path} from dashcam.");
-        }
-    }
-    else
-    {
-        logger.LogInformation("Dashcam not available.");
-    }
+    var cancellationTokenSource = new CancellationTokenSource();
+    var archiver = host.Services.GetRequiredService<IDashcamArchiver>();
+    await archiver.ArchiveAsync(cancellationTokenSource.Token);
 }
 catch (Exception ex)
 {
-    logger.LogError(ex, "An error occurred while scanning the dashcam.");
+    logger.LogError(ex, "An error occurred scanning or downloading files from dashcam.");
     return 1;
 }
 finally
