@@ -33,7 +33,7 @@ namespace DashcamVideoArchive.Viofo
             }
         }
 
-        public async Task<IReadOnlyList<FootageVideoFile>> GetFilesAsync()
+        public async Task<IReadOnlyList<DashcamVideoFile>> GetFilesAsync()
         {
             var response = await _httpClient.SendCommandAsync(CommandCodes.GetFiles);
 
@@ -49,7 +49,7 @@ namespace DashcamVideoArchive.Viofo
 
             return result.AllFiles.Select(f => f.File)
                                   .Where(f => !f.FilePath?.Contains("\\RO") ?? false)
-                                  .Select(f => new FootageVideoFile()
+                                  .Select(f => new DashcamVideoFile()
                                   {
                                       Name = f.Name ?? throw new NullReferenceException("Name is required."),
                                       Path = FormatFilePath(f.FilePath ?? throw new NullReferenceException("FilePath is required.")),

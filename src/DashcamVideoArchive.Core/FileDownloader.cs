@@ -15,19 +15,19 @@ namespace DashcamVideoArchive.Core
             _configuration = configuration;
         }
 
-        public async Task<string> DownloadAsync(string path, CancellationToken cancellationToken = default)
+        public async Task<string> DownloadAsync(string source, string destination, CancellationToken cancellationToken = default)
         {
             string downloadDirectory = _configuration["DOWNLOAD_DIRECTORY"] ?? throw new InvalidOperationException("Missing DOWNLOAD_DIRECTORY value.");
-            string downloadPath = Path.Combine(downloadDirectory, path);
+            string downloadPath = Path.Combine(downloadDirectory, destination);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath) ?? string.Empty);
 
             using var progress = new ConsoleProgressIndicator();
-            using var response = await _client.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await _client.GetAsync(source, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             
             response.EnsureSuccessStatusCode();
 
             using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(downloadPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 8192, true);
+            using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
                 
             var totalBytes = response.Content.Headers.ContentLength.HasValue ? response.Content.Headers.ContentLength.Value : -1L;
             var totalBytesRead = 0L;
