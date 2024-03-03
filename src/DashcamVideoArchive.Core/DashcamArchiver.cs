@@ -72,13 +72,23 @@ namespace DashcamVideoArchive.Core
                 var file = files[i];
                 string storagePath = file.GetStoragePath(currentRide);
 
-                _logger.LogInformation($"Downloading ({i + 1}/{files.Count}) {file.Path}...");
-                var downloadedPath = await _downloader.DownloadAsync(file.Path, storagePath, cancellationToken);
-                _logger.LogInformation($"Downloaded file to {downloadedPath}.");
+                // always download files (normal recordings and event recordings) if not already downloaded
+                // or if it's not an event recording, download file to be sure it's the latest full recording
+                if (!file.IsEventRecording || !File.Exists(storagePath))
+                {
+                    _logger.LogInformation($"Downloading ({i + 1}/{files.Count}) {file.Path}...");
+                    var downloadedPath = await _downloader.DownloadAsync(file.Path, storagePath, cancellationToken);
+                    _logger.LogInformation($"Downloaded file to {downloadedPath}.");
 
-                _logger.LogInformation($"Deleting {file.Path}...");
-                await _dashcam.DeleteFileAsync(file.Path);
-                _logger.LogInformation($"Deleted {file.Path} from dashcam.");
+                    if (!file.IsEventRecording)
+                    {
+                        _logger.LogInformation($"Deleting {file.Path}...");
+                        await _dashcam.DeleteFileAsync(file.Path);
+                        _logger.LogInformation($"Deleted {file.Path} from dashcam.");
+                    }
+                    else
+                        _logger.LogWarning($"File {file.Path} is an event recording and cannot be deleted from dashcam.");
+                }
             }
 
             if (_configuration.GetValue<bool>("SHUTDOWN_ON_COMPLETED"))

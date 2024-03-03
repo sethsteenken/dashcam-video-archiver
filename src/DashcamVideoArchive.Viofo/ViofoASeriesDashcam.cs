@@ -48,7 +48,6 @@ namespace DashcamVideoArchive.Viofo
                 throw new InvalidOperationException("Failed to deserialize XML.");
 
             return result.AllFiles.Select(f => f.File)
-                                  .Where(f => !f.FilePath?.Contains("\\RO") ?? false)
                                   .Select(f => new DashcamVideoFile()
                                   {
                                       Name = f.Name ?? throw new NullReferenceException("Name is required."),

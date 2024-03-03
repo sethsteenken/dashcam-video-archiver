@@ -11,6 +11,7 @@
         public DateTime Time { get; set; }
 
         public virtual bool IsParkingRecording => Path.Contains("Parking");
+        public virtual bool IsEventRecording => Path.Contains("RO");
 
         public virtual string GetStoragePath(string rideName)
         {
