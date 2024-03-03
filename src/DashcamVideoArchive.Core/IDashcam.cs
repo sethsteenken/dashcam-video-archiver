@@ -1,8 +1,9 @@
 ﻿namespace DashcamVideoArchive.Core
 {
-    public interface IDashcam
+    public interface IDashcam : IAsyncDisposable
     {
         Task<bool> IsAvailableAsync();
-        Task<IEnumerable<FootageVideoFile>> GetFilesAsync();
+        Task<IReadOnlyList<FootageVideoFile>> GetFilesAsync();
+        Task DeleteFileAsync(string path);
     }
 }

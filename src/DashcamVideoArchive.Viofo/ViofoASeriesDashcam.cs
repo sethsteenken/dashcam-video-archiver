@@ -11,7 +11,7 @@ namespace DashcamVideoArchive.Viofo
         private readonly ILogger<ViofoASeriesDashcam> _logger;
 
         public ViofoASeriesDashcam(
-            HttpClient httpClient, 
+            HttpClient httpClient,
             ILogger<ViofoASeriesDashcam> logger)
         {
             _httpClient = httpClient;
@@ -22,6 +22,7 @@ namespace DashcamVideoArchive.Viofo
         {
             try
             {
+                _logger.LogInformation("Checking dashcam heartbeat...");
                 var response = await _httpClient.SendCommandAsync(CommandCodes.Heartbeat);
                 return response.IsSuccessStatusCode;
             }
@@ -32,12 +33,11 @@ namespace DashcamVideoArchive.Viofo
             }
         }
 
-        public async Task<IEnumerable<FootageVideoFile>> GetFilesAsync()
+        public async Task<IReadOnlyList<FootageVideoFile>> GetFilesAsync()
         {
             var response = await _httpClient.SendCommandAsync(CommandCodes.GetFiles);
 
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FootageVideoFile>();
+            response.EnsureSuccessStatusCode();
 
             string xml = await response.Content.ReadAsStringAsync();
 
@@ -45,15 +45,44 @@ namespace DashcamVideoArchive.Viofo
 
             var result = serializer.Deserialize<FileList>(xml);
             if (result is null)
-                return Enumerable.Empty<FootageVideoFile>();
+                throw new InvalidOperationException("Failed to deserialize XML.");
 
-            return result.AllFiles.Select(f => f.File).Select(f => new FootageVideoFile()
-            {
-                Name = f.Name ?? throw new NullReferenceException("Name is required."),
-                Path = f.FilePath ?? throw new NullReferenceException("FilePath is required."),
-                Time = DateTime.Parse(f.Time),
-                Size = f.Size
-            });
+            return result.AllFiles.Select(f => f.File)
+                                  .Where(f => !f.FilePath?.Contains("\\RO") ?? false)
+                                  .Select(f => new FootageVideoFile()
+                                  {
+                                      Name = f.Name ?? throw new NullReferenceException("Name is required."),
+                                      Path = FormatFilePath(f.FilePath ?? throw new NullReferenceException("FilePath is required.")),
+                                      Time = DateTime.Parse(f.Time),
+                                      Size = f.Size
+                                  })
+                                  .OrderBy(f => f.Time)
+                                  .ToList();
+        }
+
+        public async Task DeleteFileAsync(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(nameof(path));
+
+            var response = await _httpClient.GetAsync($"{path}?del=1");
+
+            response.EnsureSuccessStatusCode();
+        }
+
+        private static string FormatFilePath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(nameof(path));
+
+            return Path.GetFullPath(path).Substring(Path.GetPathRoot(path)?.Length ?? 0).Replace("\\", "/");
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _logger.LogInformation("Forcing dashcam power off...");
+            var response = await _httpClient.SendCommandAsync(CommandCodes.ForcePowerOff);
+            response.EnsureSuccessStatusCode();
         }
     }
 }
