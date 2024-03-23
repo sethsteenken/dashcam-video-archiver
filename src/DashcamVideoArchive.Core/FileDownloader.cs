@@ -17,7 +17,7 @@ namespace DashcamVideoArchive.Core
 
         public async Task<string> DownloadAsync(string source, string destination, CancellationToken cancellationToken = default)
         {
-            string downloadDirectory = _configuration["DOWNLOAD_DIRECTORY"] ?? throw new InvalidOperationException("Missing DOWNLOAD_DIRECTORY value.");
+            string downloadDirectory = _configuration.GetDownloadDirectory();
             string downloadPath = Path.Combine(downloadDirectory, destination);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath) ?? string.Empty);
 

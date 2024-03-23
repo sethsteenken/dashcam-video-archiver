@@ -45,10 +45,8 @@ namespace DashcamVideoArchive.Core
             string currentRide;
             int rideCount = 0;
 
-            string rideDateDirectoryFormat = _configuration["RIDE_DATE_DIRECTORY_FORMAT"] 
-                ?? throw new InvalidOperationException("Missing RIDE_DATE_DIRECTORY_FORMAT configuration value.");
-
-            int rideTimeSeparation = _configuration.GetValue<int>("RIDE_TIME_SEPARATION");
+            string rideDateDirectoryFormat = _configuration.GetRideDateDirectoryFormat();
+            int rideTimeSeparation = _configuration.GetRideTimeSeparation();
 
             void setNewRide(DashcamVideoFile file)
             {
@@ -64,12 +62,13 @@ namespace DashcamVideoArchive.Core
 
             for (int i = 0; i < files.Count; i++)
             {
+                var file = files[i];
+
                 // if the time difference between the previous file and the current file is greater than n minutes
                 // assume it's a new ride
-                if (i > 0 && files[i].Time.Subtract(files[i - 1].Time).TotalMinutes > rideTimeSeparation)
-                    setNewRide(files[i]);
+                if (i > 0 && file.Time.Subtract(files[i - 1].Time).TotalMinutes > rideTimeSeparation)
+                    setNewRide(file);
 
-                var file = files[i];
                 string storagePath = file.GetStoragePath(currentRide);
 
                 // always download files (normal recordings and event recordings) if not already downloaded
@@ -91,7 +90,7 @@ namespace DashcamVideoArchive.Core
                 }
             }
 
-            if (_configuration.GetValue<bool>("SHUTDOWN_ON_COMPLETED"))
+            if (_configuration.ShutdownOnCompleted())
             {
                 _logger.LogInformation("Forcing dashcam shutdown...");
                 await _dashcam.ShutdownAsync();

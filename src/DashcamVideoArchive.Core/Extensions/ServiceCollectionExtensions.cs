@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using DashcamVideoArchive.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DashcamVideoArchive.Core
+namespace DashcamVideoArchive
 {
     public static class ServiceCollectionExtensions
     {
@@ -11,9 +12,7 @@ namespace DashcamVideoArchive.Core
             {
                 builder.ConfigureHttpClient((serviceProvider, httpClient) =>
                 {
-                    var endpoint = serviceProvider.GetRequiredService<IConfiguration>()["DASHCAM_ENDPOINT"]
-                    ?? throw new InvalidOperationException("Missing DASHCAM_ENDPOINT value.");
-
+                    var endpoint = serviceProvider.GetRequiredService<IConfiguration>().GetDashcamEndpoint();
                     httpClient.BaseAddress = new Uri(endpoint);
                 });
             });
