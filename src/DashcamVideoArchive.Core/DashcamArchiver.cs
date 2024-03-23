@@ -5,28 +5,25 @@ namespace DashcamVideoArchive.Core
 {
     public class DashcamArchiver : IDashcamArchiver
     {
-        private readonly IDashcam _dashcam;
         private readonly IFileDownloader _downloader;
         private readonly IConfiguration _configuration;
         private readonly ILogger<DashcamArchiver> _logger;
 
         public DashcamArchiver(
-            IDashcam dashcam, 
             IFileDownloader downloader,
             IConfiguration configuration,
             ILogger<DashcamArchiver> logger)
         {
-            _dashcam = dashcam;
             _downloader = downloader;
             _configuration = configuration;
             _logger = logger;
         }
 
-        public async Task ArchiveAsync(CancellationToken cancellationToken = default)
+        public async Task ArchiveAsync(IDashcam dashcam, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Scanning for dashcam...");
 
-            if (!await _dashcam.IsAvailableAsync())
+            if (!await dashcam.IsAvailableAsync())
             {
                 _logger.LogInformation("Dashcam not found.");
                 return;
@@ -34,7 +31,7 @@ namespace DashcamVideoArchive.Core
 
             _logger.LogInformation("Dashcam found. Requesting latest video files...");
 
-            var files = await _dashcam.GetFilesAsync();
+            var files = await dashcam.GetFilesAsync();
 
             if (files.Count == 0)
             {
@@ -82,7 +79,7 @@ namespace DashcamVideoArchive.Core
                     if (!file.IsEventRecording)
                     {
                         _logger.LogInformation($"Deleting {file.Path}...");
-                        await _dashcam.DeleteFileAsync(file.Path);
+                        await dashcam.DeleteFileAsync(file.Path);
                         _logger.LogInformation($"Deleted {file.Path} from dashcam.");
                     }
                     else
@@ -93,7 +90,7 @@ namespace DashcamVideoArchive.Core
             if (_configuration.ShutdownOnCompleted())
             {
                 _logger.LogInformation("Forcing dashcam shutdown...");
-                await _dashcam.ShutdownAsync();
+                await dashcam.ShutdownAsync();
             }
         }
     }

@@ -3,6 +3,7 @@ using DashcamVideoArchive.Viofo;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
 
 #if DEBUG
 Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
@@ -36,8 +37,9 @@ var logger = host.Services.GetRequiredService<ILogger<Program>>();
 try
 {
     var cancellationTokenSource = new CancellationTokenSource();
+    var dashcam = host.Services.GetRequiredService<IDashcam>();
     var archiver = host.Services.GetRequiredService<IDashcamArchiver>();
-    await archiver.ArchiveAsync(cancellationTokenSource.Token);
+    await archiver.ArchiveAsync(dashcam, cancellationTokenSource.Token);
 }
 catch (Exception ex)
 {

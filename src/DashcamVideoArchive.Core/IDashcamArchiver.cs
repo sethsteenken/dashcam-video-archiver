@@ -2,6 +2,6 @@
 {
     public interface IDashcamArchiver
     {
-        Task ArchiveAsync(CancellationToken cancellationToken = default);
+        Task ArchiveAsync(IDashcam dashcam, CancellationToken cancellationToken = default);
     }
 }
